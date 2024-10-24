@@ -1,5 +1,5 @@
-from .pywry import *
+from .bokeh_io import export_bokeh_to_png
 
-__doc__ = pywry.__doc__
-if hasattr(pywry, "__all__"):
-    __all__ = pywry.__all__
+__all__ = [
+    "export_bokeh_to_png",
+]
