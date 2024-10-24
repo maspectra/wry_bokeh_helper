@@ -21,7 +21,7 @@ fn render_bokeh(json_data: &str, resource: Option<[String; 2]>) -> PyResult<Stri
                     bokeh_helpers::BokehCDNResource { version: value },
                 )),
                 "local" => Some(bokeh_helpers::BokehResource::Local(
-                    bokeh_helpers::BokehLocalResource { file_uri: value },
+                    bokeh_helpers::BokehLocalResource { folder_uri: value },
                 )),
                 _ => {
                     return Err(PyValueError::new_err(format!(

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::path::PathBuf;
 use tao::{
     event::{Event, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
@@ -6,21 +6,26 @@ use tao::{
     window::WindowBuilder,
 };
 use tokio::sync::broadcast::Sender;
-use tokio::time::timeout;
-use wry::{http::Request, WebViewBuilder};
+use wry::{
+    http::{self, Request},
+    WebViewBuilder,
+};
 
 pub enum UserEvent {
     PayloadReceived(String),
 }
 
+#[derive(Clone)]
 pub struct BokehCDNResource {
     pub version: String,
 }
 
+#[derive(Clone)]
 pub struct BokehLocalResource {
-    pub file_uri: String,
+    pub folder_uri: String,
 }
 
+#[derive(Clone)]
 pub enum BokehResource {
     CDN(BokehCDNResource),
     Local(BokehLocalResource),
@@ -30,16 +35,30 @@ fn ipc_handler(payload: &Request<String>, event_loop_proxy: &EventLoopProxy<User
     let _ = event_loop_proxy.send_event(UserEvent::PayloadReceived(payload.body().clone()));
 }
 
+fn bokeh_cdn_as_script_html(version: &str) -> String {
+    format!(
+        "
+        <script type='text/javascript' src='https://cdn.bokeh.org/bokeh/release/bokeh-{}.min.js'></script>
+        <script type='text/javascript' src='https://cdn.bokeh.org/bokeh/release/bokeh-api-{}.min.js'></script>
+        <script type='text/javascript' src='https://cdn.bokeh.org/bokeh/release/bokeh-mathjax-{}.min.js'></script>
+        ",
+        version, version, version
+    )
+}
+
 fn bokeh_resource_as_script_html(resource: Option<BokehResource>) -> String {
     match resource {
         Some(BokehResource::CDN(BokehCDNResource { version })) => {
-            format!(
-                "<script type='text/javascript' src='https://cdn.bokeh.org/bokeh/release/bokeh-{}.min.js'></script>",
-                version
-            )
+            bokeh_cdn_as_script_html(&version)
         }
-        Some(BokehResource::Local(BokehLocalResource { file_uri })) => format!("<script type='text/javascript' src='file:///{}'></script>", file_uri),
-        None => "<script type='text/javascript' src='https://cdn.bokeh.org/bokeh/release/bokeh-3.5.2.min.js'></script>".to_string(),
+        Some(BokehResource::Local(_)) => format!(
+            "
+            <script type='text/javascript' src='/bokeh-resource-dir/bokeh.min.js'></script>
+            <script type='text/javascript' src='/bokeh-resource-dir/bokeh-mathjax.min.js'></script>
+            <script type='text/javascript' src='/bokeh-resource-dir/bokeh-api.min.js'></script>
+            "
+        ),
+        None => bokeh_cdn_as_script_html("3.5.2"),
     }
 }
 
@@ -83,6 +102,46 @@ fn build_bokeh_render_html(resource: Option<BokehResource>) -> String {
     )
 }
 
+fn custom_protocol_handler(
+    request: Request<Vec<u8>>,
+    resource: &Option<BokehResource>,
+) -> Result<http::Response<Vec<u8>>, Box<dyn std::error::Error>> {
+    let uri = request.uri().path();
+
+    if uri == "/" {
+        return http::Response::builder()
+            .header(http::header::CONTENT_TYPE, "text/html")
+            .body(build_bokeh_render_html(resource.clone()).into_bytes())
+            .map_err(Into::into);
+    }
+
+    let path = PathBuf::from(uri);
+
+    if path.parent() == Some(&PathBuf::from("/bokeh-resource-dir")) {
+        match resource {
+            Some(BokehResource::Local(BokehLocalResource { folder_uri })) => {
+                let file_name = path.file_name().unwrap().to_str().unwrap();
+                let file_path = PathBuf::from(folder_uri).join(file_name);
+                let content = std::fs::read(file_path)?;
+                let mimetype = if path.extension().unwrap() == "js" {
+                    "text/javascript"
+                } else {
+                    unimplemented!("MIME type for file {:?}", file_name.to_string());
+                };
+                http::Response::builder()
+                    .header(http::header::CONTENT_TYPE, mimetype)
+                    .body(content)
+                    .map_err(Into::into)
+            }
+            _ => {
+                return Err("BokehResource is not Local".into());
+            }
+        }
+    } else {
+        Err(format!("Invalid path {}", path.to_str().unwrap()).into())
+    }
+}
+
 fn do_render_bokeh_in_webview(
     json_data: &str,
     sender: Sender<String>,
@@ -91,15 +150,27 @@ fn do_render_bokeh_in_webview(
     let mut event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let event_loop_proxy = event_loop.create_proxy();
     let window = WindowBuilder::new()
-        .with_decorations(false)
-        .with_visible(false)
-        .with_transparent(true)
+        // .with_decorations(false)
+        // .with_visible(false)
+        // .with_transparent(true)
         .build(&event_loop)
         .unwrap();
 
     let webview = WebViewBuilder::new()
-        .with_html(build_bokeh_render_html(resource))
+        .with_html(build_bokeh_render_html(resource.clone()))
+        .with_url("wry://render-bokeh")
         .with_ipc_handler(move |payload| ipc_handler(&payload, &event_loop_proxy))
+        .with_custom_protocol(
+            "wry".into(),
+            move |_, request| match custom_protocol_handler(request, &resource) {
+                Ok(response) => response.map(Into::into),
+                Err(e) => http::Response::builder()
+                    .status(500)
+                    .body(e.to_string().as_bytes().to_vec())
+                    .unwrap()
+                    .map(Into::into),
+            },
+        )
         .with_transparent(true)
         .build(&window)
         .unwrap();

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import urllib.request
 from typing import TYPE_CHECKING, Any
 
@@ -18,6 +19,6 @@ def export_bokeh_to_png(
 ) -> Image.Image:
     """Export a Bokeh JSON item to a PNG image."""
 
-    png = render_bokeh(bokeh_json_item, resource)
+    png = render_bokeh(json.dumps(bokeh_json_item), resource)
     response = urllib.request.urlopen(png)
     return Image.open(io.BytesIO(response.read()))
