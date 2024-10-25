@@ -150,9 +150,9 @@ fn do_render_bokeh_in_webview(
     let mut event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let event_loop_proxy = event_loop.create_proxy();
     let window = WindowBuilder::new()
-        // .with_decorations(false)
-        // .with_visible(false)
-        // .with_transparent(true)
+        .with_decorations(false)
+        .with_visible(false)
+        .with_transparent(true)
         .build(&event_loop)
         .unwrap();
 

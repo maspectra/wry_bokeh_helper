@@ -1,4 +1,4 @@
-from pywry import export_bokeh_to_png
+from wry_bokeh_helper import export_bokeh_to_png
 
 img = export_bokeh_to_png(
     {

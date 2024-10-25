@@ -41,7 +41,7 @@ fn render_bokeh(json_data: &str, resource: Option<[String; 2]>) -> PyResult<Stri
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn pywry(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn wry_bokeh_helper(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(render_bokeh, m)?)?;
     Ok(())
 }

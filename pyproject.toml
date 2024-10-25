@@ -3,7 +3,7 @@ requires = ["maturin>=1.7,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "pywry"
+name = "wry_bokeh_helper"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -13,8 +13,10 @@ classifiers = [
 dynamic = ["version"]
 dependencies = ["pillow"]
 
+
 [project.optional-dependencies]
 tests = ["pytest"]
+dev = ["ruff"]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Any
 
 from PIL import Image
 
-from pywry._pywry import render_bokeh
+from wry_bokeh_helper._wry_bokeh_helper import render_bokeh
 
 if TYPE_CHECKING:
-    from pywry._pywry import ResourceType
+    from wry_bokeh_helper._wry_bokeh_helper import ResourceType
 
 
 def export_bokeh_to_png(

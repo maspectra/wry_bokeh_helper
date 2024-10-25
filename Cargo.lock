@@ -1698,16 +1698,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pywry"
-version = "0.1.0"
-dependencies = [
- "pyo3",
- "tao",
- "tokio",
- "wry",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2709,6 +2699,16 @@ dependencies = [
  "windows-core",
  "windows-version",
  "x11-dl",
+]
+
+[[package]]
+name = "wry_bokeh_helper"
+version = "0.1.0"
+dependencies = [
+ "pyo3",
+ "tao",
+ "tokio",
+ "wry",
 ]
 
 [[package]]
