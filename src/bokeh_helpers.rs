@@ -1,4 +1,4 @@
-use std::{env, path::PathBuf};
+use std::path::PathBuf;
 use tao::{
     event::{Event, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
@@ -8,8 +8,11 @@ use tao::{
 use tokio::sync::broadcast::Sender;
 use wry::{
     http::{self, Request},
-    WebContext, WebViewBuilder,
+    WebViewBuilder,
 };
+
+#[cfg(target_os = "windows")]
+use wry::WebContext;
 
 pub enum UserEvent {
     PayloadReceived(String),
@@ -165,9 +168,9 @@ fn do_render_bokeh_in_webview(
 
     #[cfg(target_os = "windows")]
     let mut web_context = WebContext::new(Some(
-        (env::var("APPDATA")
+        (std::env::var("APPDATA")
             .map(PathBuf::from)
-            .unwrap_or_else(|_| env::temp_dir()))
+            .unwrap_or_else(|_| std::env::temp_dir()))
         .join("wry_bokeh_helper"),
     ));
     #[cfg(target_os = "windows")]
