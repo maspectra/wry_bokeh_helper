@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import pathlib
 import urllib.request
 from typing import TYPE_CHECKING, Any, overload
 
@@ -37,7 +38,7 @@ def bokeh_to_image(
 @overload
 def bokeh_to_image(
     bokeh_figure_or_bokeh_standalone_json: BokehFigureOrStandaloneJson,
-    filepath: os.PathLike | str,
+    filepath: os.PathLike[str] | str,
     *,
     resource: tuple[ResourceType, str] | None = None,
 ) -> None: ...
@@ -45,7 +46,7 @@ def bokeh_to_image(
 
 def bokeh_to_image(
     bokeh_figure_or_bokeh_standalone_json: BokehFigureOrStandaloneJson,
-    filepath: os.PathLike | str | None = None,
+    filepath: os.PathLike[str] | str | None = None,
     *,
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image | None:
@@ -69,5 +70,9 @@ def bokeh_to_image(
     img = Image.open(io.BytesIO(response.read()))
 
     if filepath:
+        # if want jpg, convert RGBA to RGB
+        filepath = pathlib.Path(filepath)
+        if filepath.suffix == ".jpg" or filepath.suffix == ".jpeg":
+            img = img.convert("RGB")
         return img.save(filepath)
     return img
