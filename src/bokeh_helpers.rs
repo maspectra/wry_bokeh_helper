@@ -81,8 +81,34 @@ fn build_bokeh_render_html(resource: Option<BokehResource>) -> String {
             </style>
             {}
             <script type='text/javascript'>
-                function renderBokeh(json) {{
-                    console.log('Rendering Bokeh plot in WebView, json:', json);
+                function setDPI(canvas, dpi) {{
+                    // Set up CSS size.
+                    canvas.style.width = canvas.style.width || canvas.width + 'px';
+                    canvas.style.height = canvas.style.height || canvas.height + 'px';
+
+                    // Get size information.
+                    var scaleFactor = dpi / 96;
+                    var width = parseFloat(canvas.style.width);
+                    var height = parseFloat(canvas.style.height);
+
+                    // Backup the canvas contents.
+                    var oldScale = canvas.width / width;
+                    var backupScale = scaleFactor / oldScale;
+                    var backup = canvas.cloneNode(false);
+                    backup.getContext('2d').drawImage(canvas, 0, 0);
+
+                    // Resize the canvas.
+                    var ctx = canvas.getContext('2d');
+                    canvas.width = Math.ceil(width * scaleFactor);
+                    canvas.height = Math.ceil(height * scaleFactor);
+
+                    // Redraw the canvas image and scale future draws.
+                    ctx.setTransform(backupScale, 0, 0, backupScale, 0, 0);
+                    ctx.drawImage(backup, 0, 0);
+                    ctx.setTransform(scaleFactor, 0, 0, scaleFactor, 0, 0);
+                }}
+
+                function renderBokeh(json, dpi) {{
                     const data = JSON.parse(json);
                     const rootId = data['root_id'];
                     if (window.Bokeh === undefined) {{
@@ -90,7 +116,9 @@ fn build_bokeh_render_html(resource: Option<BokehResource>) -> String {
                     }}
                     window.Bokeh.embed.embed_item(data, document.getElementById('root')).then((viewManager) => {{
                         const view = viewManager.get_by_id(rootId);
-                        const dataURL = view.export().canvas.toDataURL('image/png', 1.0);
+                        const canvas = view.export().canvas;
+                        setDPI(canvas, dpi); 
+                        const dataURL = canvas.toDataURL('image/png', 1.0);
                         window.ipc.postMessage(dataURL);
                     }});
                 }}
@@ -154,6 +182,7 @@ fn custom_protocol_handler(
 
 fn do_render_bokeh_in_webview(
     json_data: &str,
+    dpi: u64,
     sender: Sender<String>,
     resource: Option<BokehResource>,
 ) {
@@ -200,8 +229,8 @@ fn do_render_bokeh_in_webview(
 
     webview
         .evaluate_script(&format!(
-            "window.onload = () => renderBokeh(`{}`)",
-            json_data
+            "window.onload = () => renderBokeh(`{}`, {})",
+            json_data, dpi
         ))
         .unwrap();
 
@@ -209,9 +238,6 @@ fn do_render_bokeh_in_webview(
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::NewEvents(StartCause::Init) => {
-                println!("Wry has started!")
-            }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
@@ -225,9 +251,13 @@ fn do_render_bokeh_in_webview(
     });
 }
 
-pub async fn render_bokeh_in_webview(json_data: &str, resource: Option<BokehResource>) -> String {
+pub async fn render_bokeh_in_webview(
+    json_data: &str,
+    dpi: u64,
+    resource: Option<BokehResource>,
+) -> String {
     let (tx, mut rx) = tokio::sync::broadcast::channel(1);
-    do_render_bokeh_in_webview(json_data, tx, resource);
+    do_render_bokeh_in_webview(json_data, dpi, tx, resource);
 
     rx.recv().await.unwrap()
 }

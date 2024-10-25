@@ -4,9 +4,8 @@ use pyo3::prelude::*;
 mod bokeh_helpers;
 
 #[pyfunction]
-#[pyo3(signature = (json_data, resource=None))]
-fn render_bokeh(json_data: &str, resource: Option<[String; 2]>) -> PyResult<String> {
-    println!("Rendering Bokeh plot in WebView");
+#[pyo3(signature = (json_data, dpi=300, resource=None))]
+fn render_bokeh(json_data: &str, dpi: u64, resource: Option<[String; 2]>) -> PyResult<String> {
     let resource = match resource {
         Some(resource) => {
             let variant = &resource[0];
@@ -36,7 +35,9 @@ fn render_bokeh(json_data: &str, resource: Option<[String; 2]>) -> PyResult<Stri
 
     Ok(tokio::runtime::Runtime::new()
         .unwrap()
-        .block_on(bokeh_helpers::render_bokeh_in_webview(json_data, resource)))
+        .block_on(bokeh_helpers::render_bokeh_in_webview(
+            json_data, dpi, resource,
+        )))
 }
 
 /// A Python module implemented in Rust.
