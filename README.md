@@ -26,8 +26,8 @@ p.line(x, y, legend_label="Temp.", line_width=2)
 
 
 # Export the plot to an image file
-img = bokeh_to_image(plot)
+img = bokeh_to_image(plot, dpi=600)
 img.show()
 
-img.save("plot.png")
+bokeh_to_image(plot, dpi=300, filename="plot.png")
 ```
