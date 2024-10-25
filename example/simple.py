@@ -287,10 +287,6 @@ img = export_bokeh_to_png(
         },
         "version": "3.4.3",
     },
-    resource=(
-        "local",
-        "/Users/johnnyxcy/Workspace/mas/repositories/plotting-prototype/.venv/lib/python3.10/site-packages/bokeh/server/static/js",
-    ),
 )
 
 img.show()
