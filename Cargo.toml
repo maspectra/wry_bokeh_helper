@@ -9,6 +9,7 @@ name = "wry_bokeh_helper"
 crate-type = ["cdylib"]
 
 [dependencies]
+mime_guess = "2.0.5"
 pyo3 = "0.22.0"
 tao = "0.30.3"
 tokio = { version = "1.41.0", features = ["full"] }

@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 use tao::{
     event::{Event, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy},
@@ -8,7 +8,7 @@ use tao::{
 use tokio::sync::broadcast::Sender;
 use wry::{
     http::{self, Request},
-    WebViewBuilder,
+    WebContext, WebViewBuilder,
 };
 
 pub enum UserEvent {
@@ -123,13 +123,20 @@ fn custom_protocol_handler(
                 let file_name = path.file_name().unwrap().to_str().unwrap();
                 let file_path = PathBuf::from(folder_uri).join(file_name);
                 let content = std::fs::read(file_path)?;
-                let mimetype = if path.extension().unwrap() == "js" {
-                    "text/javascript"
-                } else {
-                    unimplemented!("MIME type for file {:?}", file_name.to_string());
-                };
+                let mimetype = mime_guess::from_path(path)
+                    .first()
+                    .map(|mime| mime.to_string())
+                    .unwrap_or("text/plain".to_string());
+
+                #[cfg(target_os = "windows")]
+                let cors = "https://wry.render-bokeh".to_string();
+
+                #[cfg(not(target_os = "windows"))]
+                let cors = "wry://render-bokeh".to_string();
+
                 http::Response::builder()
                     .header(http::header::CONTENT_TYPE, mimetype)
+                    .header(http::header::ACCESS_CONTROL_ALLOW_ORIGIN, cors)
                     .body(content)
                     .map_err(Into::into)
             }
@@ -156,7 +163,20 @@ fn do_render_bokeh_in_webview(
         .build(&event_loop)
         .unwrap();
 
-    let webview = WebViewBuilder::new()
+    #[cfg(target_os = "windows")]
+    let mut web_context = WebContext::new(Some(
+        (env::var("APPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| env::temp_dir()))
+        .join("wry_bokeh_helper"),
+    ));
+    #[cfg(target_os = "windows")]
+    let webview_builder = WebViewBuilder::with_web_context(&mut web_context);
+
+    #[cfg(not(target_os = "windows"))]
+    let webview_builder = WebViewBuilder::new();
+
+    let webview = webview_builder
         .with_html(build_bokeh_render_html(resource.clone()))
         .with_url("wry://render-bokeh")
         .with_ipc_handler(move |payload| ipc_handler(&payload, &event_loop_proxy))
@@ -207,21 +227,4 @@ pub async fn render_bokeh_in_webview(json_data: &str, resource: Option<BokehReso
     do_render_bokeh_in_webview(json_data, tx, resource);
 
     rx.recv().await.unwrap()
-
-    // let timeout_duration = Duration::from_secs(5);
-
-    // match timeout(timeout_duration, rx.recv()).await {
-    //     Ok(message) => {
-    //         println!("333");
-    //         message.unwrap()
-    //     }
-    //     Err(_) => {
-    //         println!("111");
-    //         panic!("Timeout after {:?}", timeout_duration);
-    //     }
-    //     _ => {
-    //         println!("222");
-    //         panic!("Timeout after {:?}", timeout_duration);
-    //     }
-    // }
 }
