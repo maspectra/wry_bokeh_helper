@@ -13,10 +13,12 @@ classifiers = [
 dynamic = ["version"]
 dependencies = ["pillow"]
 
-
 [project.optional-dependencies]
 tests = ["pytest"]
-dev = ["ruff"]
+dev = ["ruff", "bokeh"]
+
+[tool.pyright]
+typeCheckingMode = "standard"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
