@@ -29,9 +29,23 @@ if TYPE_CHECKING:
 def bokeh_to_image(
     bokeh_figure_or_bokeh_standalone_json: BokehFigureOrStandaloneJson,
     *,
+    dpi: int = 300,
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image:
-    """Make bokeh plot to PIL.Image."""
+    """
+    Converts a Bokeh figure or standalone JSON to an image.
+
+    Args:
+        bokeh_figure_or_bokeh_standalone_json (BokehFigureOrStandaloneJson):
+            The Bokeh figure or standalone JSON to convert.
+        dpi (int, optional):
+            The resolution of the output image in dots per inch. Defaults to 300.
+        resource (tuple[ResourceType, str] | None, optional):
+            Additional resources required for the conversion. Defaults to None.
+
+    Returns:
+        Image.Image: The resulting image.
+    """
     ...
 
 
@@ -40,14 +54,33 @@ def bokeh_to_image(
     bokeh_figure_or_bokeh_standalone_json: BokehFigureOrStandaloneJson,
     filepath: os.PathLike[str] | str,
     *,
+    dpi: int = 300,
     resource: tuple[ResourceType, str] | None = None,
-) -> None: ...
+) -> None:
+    """
+    Save a Bokeh plot to a specified file path.
+
+    Parameters:
+        bokeh_figure_or_bokeh_standalone_json (BokehFigureOrStandaloneJson):
+            The Bokeh figure or standalone JSON to be saved as an image.
+        filepath (os.PathLike[str] | str):
+            The file path where the image will be saved.
+        dpi (int, optional):
+            The resolution of the saved image in dots per inch. Default is 300.
+        resource (tuple[ResourceType, str] | None, optional):
+            Additional resources required for saving the image. Default is None.
+
+    Returns:
+        None
+    """
+    ...
 
 
 def bokeh_to_image(
     bokeh_figure_or_bokeh_standalone_json: BokehFigureOrStandaloneJson,
     filepath: os.PathLike[str] | str | None = None,
     *,
+    dpi: int = 300,
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image | None:
     if isinstance(bokeh_figure_or_bokeh_standalone_json, dict):
@@ -65,7 +98,7 @@ def bokeh_to_image(
             )
         bokeh_json_item = json_item(bokeh_figure_or_bokeh_standalone_json)
 
-    png = render_bokeh(json.dumps(bokeh_json_item), resource)
+    png = render_bokeh(json.dumps(bokeh_json_item), dpi, resource)
     response = urllib.request.urlopen(png)
     img = Image.open(io.BytesIO(response.read()))
 
