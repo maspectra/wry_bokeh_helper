@@ -1,6 +1,6 @@
-from wry_bokeh_helper import export_bokeh_to_png
+from wry_bokeh_helper import bokeh_to_image
 
-img = export_bokeh_to_png(
+img = bokeh_to_image(
     {
         "target_id": None,
         "root_id": "p1001",

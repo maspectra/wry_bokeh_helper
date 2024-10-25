@@ -1,5 +1,5 @@
-from .bokeh_io import export_bokeh_to_png
+from .bokeh_io import bokeh_to_image
 
 __all__ = [
-    "export_bokeh_to_png",
+    "bokeh_to_image",
 ]

@@ -13,11 +13,11 @@ if TYPE_CHECKING:
     from wry_bokeh_helper._wry_bokeh_helper import ResourceType
 
 
-def export_bokeh_to_png(
+def bokeh_to_image(
     bokeh_json_item: dict[str, Any],
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image:
-    """Export a Bokeh JSON item to a PNG image."""
+    """Make bokeh plot to PIL.Image."""
 
     png = render_bokeh(json.dumps(bokeh_json_item), resource)
     response = urllib.request.urlopen(png)
