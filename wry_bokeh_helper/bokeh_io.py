@@ -29,7 +29,6 @@ if TYPE_CHECKING:
 def bokeh_to_image(
     bokeh_figure_or_bokeh_standalone_json: BokehFigureOrStandaloneJson,
     *,
-    dpi: int = 300,
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image:
     """
@@ -38,8 +37,6 @@ def bokeh_to_image(
     Args:
         bokeh_figure_or_bokeh_standalone_json (BokehFigureOrStandaloneJson):
             The Bokeh figure or standalone JSON to convert.
-        dpi (int, optional):
-            The resolution of the output image in dots per inch. Defaults to 300.
         resource (tuple[ResourceType, str] | None, optional):
             Additional resources required for the conversion. Defaults to None.
 
@@ -107,5 +104,5 @@ def bokeh_to_image(
         filepath = pathlib.Path(filepath)
         if filepath.suffix == ".jpg" or filepath.suffix == ".jpeg":
             img = img.convert("RGB")
-        return img.save(filepath)
+        return img.save(filepath, dpi=(dpi, dpi))
     return img

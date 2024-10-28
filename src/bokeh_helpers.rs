@@ -81,44 +81,19 @@ fn build_bokeh_render_html(resource: Option<BokehResource>) -> String {
             </style>
             {}
             <script type='text/javascript'>
-                function setDPI(canvas, dpi) {{
-                    // Set up CSS size.
-                    canvas.style.width = canvas.style.width || canvas.width + 'px';
-                    canvas.style.height = canvas.style.height || canvas.height + 'px';
-
-                    // Get size information.
-                    var scaleFactor = dpi / 96;
-                    var width = parseFloat(canvas.style.width);
-                    var height = parseFloat(canvas.style.height);
-
-                    // Backup the canvas contents.
-                    var oldScale = canvas.width / width;
-                    var backupScale = scaleFactor / oldScale;
-                    var backup = canvas.cloneNode(false);
-                    backup.getContext('2d').drawImage(canvas, 0, 0);
-
-                    // Resize the canvas.
-                    var ctx = canvas.getContext('2d');
-                    canvas.width = Math.ceil(width * scaleFactor);
-                    canvas.height = Math.ceil(height * scaleFactor);
-
-                    // Redraw the canvas image and scale future draws.
-                    ctx.setTransform(backupScale, 0, 0, backupScale, 0, 0);
-                    ctx.drawImage(backup, 0, 0);
-                    ctx.setTransform(scaleFactor, 0, 0, scaleFactor, 0, 0);
-                }}
-
                 function renderBokeh(json, dpi) {{
                     const data = JSON.parse(json);
                     const rootId = data['root_id'];
                     if (window.Bokeh === undefined) {{
                         throw new Error('Bokeh is not loaded');
                     }}
+                    let devicePixelRatioBase = window.devicePixelRatio;
+                    window.devicePixelRatio = devicePixelRatioBase * dpi / 96;
                     window.Bokeh.embed.embed_item(data, document.getElementById('root')).then((viewManager) => {{
                         const view = viewManager.get_by_id(rootId);
                         const canvas = view.export().canvas;
-                        setDPI(canvas, dpi); 
                         const dataURL = canvas.toDataURL('image/png', 1.0);
+                        window.devicePixelRatio = devicePixelRatioBase;
                         window.ipc.postMessage(dataURL);
                     }});
                 }}
