@@ -4,6 +4,7 @@ import io
 import json
 import os
 import pathlib
+import sys
 import urllib.request
 from typing import TYPE_CHECKING, Any, overload
 
@@ -12,6 +13,8 @@ from PIL import Image
 from wry_bokeh_helper._wry_bokeh_helper import render_bokeh
 
 if TYPE_CHECKING:
+    from multiprocessing import Queue
+
     from wry_bokeh_helper._wry_bokeh_helper import ResourceType
 
     try:
@@ -23,6 +26,70 @@ if TYPE_CHECKING:
         StandaloneEmbedJson = dict[str, Any]
 
     BokehFigureOrStandaloneJson = Model | StandaloneEmbedJson
+
+
+def _render_bokeh(
+    bokeh_json_item: dict[str, Any],
+    dpi: int,
+    resource: tuple[ResourceType, str] | None,
+) -> str:
+    try:
+        return render_bokeh(
+            json.dumps(bokeh_json_item),
+            dpi,
+            resource,
+        )
+    except BaseException as e:
+        raise e
+
+
+def _run_in_process(
+    queue: Queue,
+    bokeh_json_item: dict[str, Any],
+    dpi: int,
+    resource: tuple[ResourceType, str] | None,
+):
+    try:
+        data_url = _render_bokeh(
+            bokeh_json_item,
+            dpi,
+            resource,
+        )
+        queue.put(data_url)
+    except BaseException as e:
+        queue.put(e)
+
+
+def _get_img_data_url_in_subprocess(
+    bokeh_json_item: dict[str, Any],
+    dpi: int,
+    resource: tuple[ResourceType, str] | None,
+) -> str:
+    from multiprocessing import Process, Queue, freeze_support
+    from multiprocessing.process import current_process
+    from queue import Empty
+
+    if getattr(current_process(), "_inheriting", False):
+        freeze_support()
+    queue: Queue[str | BaseException] = Queue()
+    process = Process(
+        target=_run_in_process,
+        args=(
+            queue,
+            bokeh_json_item,
+            dpi,
+            resource,
+        ),
+    )
+    process.start()
+
+    try:
+        result = queue.get(timeout=60)
+    except Empty:
+        raise TimeoutError("The process took too long to complete.")
+    if isinstance(result, BaseException):
+        raise result
+    return result
 
 
 @overload
@@ -94,9 +161,14 @@ def bokeh_to_image(
                 "bokeh_figure_or_bokeh_standalone_json must be a Bokeh Model."
             )
         bokeh_json_item = json_item(bokeh_figure_or_bokeh_standalone_json)
-
-    png = render_bokeh(json.dumps(bokeh_json_item), dpi, resource)
-    response = urllib.request.urlopen(png)
+    is_MacOS = sys.platform == "darwin"
+    if is_MacOS:
+        img_data_url = _get_img_data_url_in_subprocess(
+            {**bokeh_json_item}, dpi, resource
+        )
+    else:
+        img_data_url = _render_bokeh({**bokeh_json_item}, dpi, resource)
+    response = urllib.request.urlopen(img_data_url)
     img = Image.open(io.BytesIO(response.read()))
 
     if filepath:
