@@ -96,6 +96,7 @@ def _get_img_data_url_in_subprocess(
 def bokeh_to_image(
     bokeh_figure_or_bokeh_standalone_json: BokehFigureOrStandaloneJson,
     *,
+    dpi: int = 300,
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image:
     """
@@ -104,9 +105,10 @@ def bokeh_to_image(
     Args:
         bokeh_figure_or_bokeh_standalone_json (BokehFigureOrStandaloneJson):
             The Bokeh figure or standalone JSON to convert.
+        dpi (int, optional):
+            The resolution of the image in dots per inch. Default is 300.
         resource (tuple[ResourceType, str] | None, optional):
             Additional resources required for the conversion. Defaults to None.
-
     Returns:
         Image.Image: The resulting image.
     """
