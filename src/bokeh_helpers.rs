@@ -208,7 +208,7 @@ fn do_render_bokeh_in_webview(
 
     webview
         .evaluate_script(&format!(
-            "window.onload = () => renderBokeh(`{}`, {}, `{})",
+            "window.onload = () => renderBokeh(`{}`, {}, `{}`)",
             json_data, dpi, typ
         ))
         .unwrap();

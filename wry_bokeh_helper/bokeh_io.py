@@ -103,6 +103,7 @@ def bokeh_to_image(
     bokeh_figure_or_bokeh_standalone_json: BokehFigureOrStandaloneJson,
     *,
     dpi: int = 300,
+    typ: str = "image/png",
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image:
     """
@@ -127,6 +128,7 @@ def bokeh_to_image(
     filepath: os.PathLike[str] | str,
     *,
     dpi: int = 300,
+    typ: str = "image/png",
     resource: tuple[ResourceType, str] | None = None,
 ) -> None:
     """
@@ -156,6 +158,10 @@ def bokeh_to_image(
     typ: str = "image/png",
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image | None:
+    if typ not in ["image/jpeg", "image/png", "image/webp"]:
+        raise ValueError(
+            "Invalid `toDataURL` type value. See https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL for more details."
+        )
     if isinstance(bokeh_figure_or_bokeh_standalone_json, dict):
         bokeh_json_item = bokeh_figure_or_bokeh_standalone_json
 
