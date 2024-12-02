@@ -31,13 +31,15 @@ if TYPE_CHECKING:
 def _render_bokeh(
     bokeh_json_item: dict[str, Any],
     dpi: int,
+    typ: str,
     resource: tuple[ResourceType, str] | None,
 ) -> str:
     try:
         return render_bokeh(
-            json.dumps(bokeh_json_item),
-            dpi,
-            resource,
+            json_data=json.dumps(bokeh_json_item),
+            dpi=dpi,
+            typ=typ,
+            resource=resource,
         )
     except BaseException as e:
         raise e
@@ -47,12 +49,14 @@ def _run_in_process(
     queue: Queue,
     bokeh_json_item: dict[str, Any],
     dpi: int,
+    typ: str,
     resource: tuple[ResourceType, str] | None,
 ):
     try:
         data_url = _render_bokeh(
             bokeh_json_item,
             dpi,
+            typ,
             resource,
         )
         queue.put(data_url)
@@ -63,6 +67,7 @@ def _run_in_process(
 def _get_img_data_url_in_subprocess(
     bokeh_json_item: dict[str, Any],
     dpi: int,
+    typ: str,
     resource: tuple[ResourceType, str] | None,
 ) -> str:
     from multiprocessing import Process, Queue, freeze_support
@@ -78,6 +83,7 @@ def _get_img_data_url_in_subprocess(
             queue,
             bokeh_json_item,
             dpi,
+            typ,
             resource,
         ),
     )
@@ -147,6 +153,7 @@ def bokeh_to_image(
     filepath: os.PathLike[str] | str | None = None,
     *,
     dpi: int = 300,
+    typ: str = "image/png",
     resource: tuple[ResourceType, str] | None = None,
 ) -> Image.Image | None:
     if isinstance(bokeh_figure_or_bokeh_standalone_json, dict):
@@ -166,17 +173,19 @@ def bokeh_to_image(
     is_MacOS = sys.platform == "darwin"
     if is_MacOS:
         img_data_url = _get_img_data_url_in_subprocess(
-            {**bokeh_json_item}, dpi, resource
+            {**bokeh_json_item}, dpi, typ, resource
         )
     else:
-        img_data_url = _render_bokeh({**bokeh_json_item}, dpi, resource)
+        img_data_url = _render_bokeh({**bokeh_json_item}, dpi, typ, resource)
     response = urllib.request.urlopen(img_data_url)
     img = Image.open(io.BytesIO(response.read()))
 
     if filepath:
         # if want jpg, convert RGBA to RGB
         filepath = pathlib.Path(filepath)
-        if filepath.suffix == ".jpg" or filepath.suffix == ".jpeg":
+        if typ == "image/png" and (
+            filepath.suffix == ".jpg" or filepath.suffix == ".jpeg"
+        ):
             img = img.convert("RGB")
         return img.save(filepath, dpi=(dpi, dpi))
     return img

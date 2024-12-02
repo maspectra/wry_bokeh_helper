@@ -81,7 +81,7 @@ fn build_bokeh_render_html(resource: Option<BokehResource>) -> String {
             </style>
             {}
             <script type='text/javascript'>
-                function renderBokeh(json, dpi) {{
+                function renderBokeh(json, dpi, typ) {{
                     const data = JSON.parse(json);
                     const rootId = data['root_id'];
                     if (window.Bokeh === undefined) {{
@@ -89,10 +89,13 @@ fn build_bokeh_render_html(resource: Option<BokehResource>) -> String {
                     }}
                     let devicePixelRatioBase = window.devicePixelRatio;
                     window.devicePixelRatio = devicePixelRatioBase * dpi / 96;
-                    window.Bokeh.embed.embed_item(data, document.getElementById('root')).then((viewManager) => {{
+                    const container = document.getElementById('root');
+                    window.Bokeh.embed.embed_item(data, container).then((viewManager) => {{
                         const view = viewManager.get_by_id(rootId);
                         const canvas = view.export().canvas;
-                        const dataURL = canvas.toDataURL('image/png', 1.0);
+                        container.style.width = canvas.width + 'px';
+                        container.style.height = canvas.height + 'px';
+                        const dataURL = canvas.toDataURL(typ, 1.0);
                         window.devicePixelRatio = devicePixelRatioBase;
                         window.ipc.postMessage(dataURL);
                     }});
@@ -158,6 +161,7 @@ fn custom_protocol_handler(
 fn do_render_bokeh_in_webview(
     json_data: &str,
     dpi: u64,
+    typ: &str,
     sender: Sender<String>,
     resource: Option<BokehResource>,
 ) {
@@ -204,8 +208,8 @@ fn do_render_bokeh_in_webview(
 
     webview
         .evaluate_script(&format!(
-            "window.onload = () => renderBokeh(`{}`, {})",
-            json_data, dpi
+            "window.onload = () => renderBokeh(`{}`, {}, `{})",
+            json_data, dpi, typ
         ))
         .unwrap();
 
@@ -229,10 +233,11 @@ fn do_render_bokeh_in_webview(
 pub async fn render_bokeh_in_webview(
     json_data: &str,
     dpi: u64,
+    typ: &str,
     resource: Option<BokehResource>,
 ) -> String {
     let (tx, mut rx) = tokio::sync::broadcast::channel(1);
-    do_render_bokeh_in_webview(json_data, dpi, tx, resource);
+    do_render_bokeh_in_webview(json_data, dpi, typ, tx, resource);
 
     rx.recv().await.unwrap()
 }

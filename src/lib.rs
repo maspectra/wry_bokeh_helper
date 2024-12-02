@@ -4,8 +4,13 @@ use pyo3::prelude::*;
 mod bokeh_helpers;
 
 #[pyfunction]
-#[pyo3(signature = (json_data, dpi=300, resource=None))]
-fn render_bokeh(json_data: &str, dpi: u64, resource: Option<[String; 2]>) -> PyResult<String> {
+#[pyo3(signature = (json_data, dpi=300, typ="image/png", resource=None))]
+fn render_bokeh(
+    json_data: &str,
+    dpi: u64,
+    typ: &str,
+    resource: Option<[String; 2]>,
+) -> PyResult<String> {
     let resource = match resource {
         Some(resource) => {
             let variant = &resource[0];
@@ -36,7 +41,7 @@ fn render_bokeh(json_data: &str, dpi: u64, resource: Option<[String; 2]>) -> PyR
     Ok(tokio::runtime::Runtime::new()
         .unwrap()
         .block_on(bokeh_helpers::render_bokeh_in_webview(
-            json_data, dpi, resource,
+            json_data, dpi, typ, resource,
         )))
 }
 
