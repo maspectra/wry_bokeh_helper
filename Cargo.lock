@@ -2725,7 +2725,7 @@ dependencies = [
 
 [[package]]
 name = "wry_bokeh_helper"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "mime_guess",
  "pyo3",
