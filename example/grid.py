@@ -29,6 +29,6 @@ if __name__ == "__main__":
     bokeh_to_image(
         gp,
         "grid.png",
-        typ="image/jpeg",
+        typ="image/png",
         dpi=300,
     )

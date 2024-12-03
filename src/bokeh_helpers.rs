@@ -93,6 +93,10 @@ fn build_bokeh_render_html(resource: Option<BokehResource>) -> String {
                     window.Bokeh.embed.embed_item(data, container).then((viewManager) => {{
                         const view = viewManager.get_by_id(rootId);
                         const canvas = view.export().canvas;
+                        const ctx = canvas.getContext('2d');
+                        ctx.globalCompositeOperation = 'destination-over';
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
                         container.style.width = canvas.width + 'px';
                         container.style.height = canvas.height + 'px';
                         const dataURL = canvas.toDataURL(typ, 1.0);
